@@ -1,25 +1,20 @@
 <?php
-// Abilita CORS per test da browser
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,PATCH,DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Gestione preflight OPTIONS
 if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
     http_response_code(200);
     exit();
 }
 
-// Configurazione database
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'restful_api');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
-// Nome tabella
 define('TABLE_USERS', 'users');
 
-// Connessione al database
 function getDBConnection() {
     try {
         $pdo = new PDO(
@@ -40,7 +35,6 @@ function getDBConnection() {
     }
 }
 
-// Inizializza la tabella se non esiste
 function initDatabase() {
     $pdo = getDBConnection();
     
@@ -74,27 +68,21 @@ function initDatabase() {
     }
 }
 
-// Legge il metodo HTTP
 $metodo = $_SERVER["REQUEST_METHOD"];
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
 
-// Supporto per PATCH (alcuni server non lo supportano nativamente)
 if ($metodo == 'POST' && isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
     $metodo = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'];
 }
 
-// Legge il tipo di contenuto inviato dal client
 $ct = $_SERVER["CONTENT_TYPE"] ?? 'application/json';
 $type = explode("/", $ct);
 
-// Legge il tipo di contenuto di ritorno richiesto dal client
 $retct = $_SERVER["HTTP_ACCEPT"] ?? 'application/json';
 $ret = explode("/", $retct);
 
-// Estrai l'ID dall'URI
 $id = null;
-// Cerca l'ID nell'URI (es. /api/users/123)
 for ($i = 0; $i < count($uri); $i++) {
     if ($uri[$i] == 'users' && isset($uri[$i+1]) && is_numeric($uri[$i+1])) {
         $id = (int)$uri[$i+1];
@@ -102,10 +90,8 @@ for ($i = 0; $i < count($uri); $i++) {
     }
 }
 
-// Legge il body della richiesta
 $body = file_get_contents('php://input');
 
-// Decodifica i dati in base al Content-Type
 $requestData = [];
 if (!empty($body)) {
     if (isset($type[1]) && $type[1] == "json") {
@@ -119,19 +105,15 @@ if (!empty($body)) {
     }
 }
 
-// Inizializza il database
 initDatabase();
 $pdo = getDBConnection();
 
-// Variabile per la risposta
 $response = [];
 $statusCode = 200;
 
-// Gestione delle richieste in base al metodo
 switch ($metodo) {
     case 'GET':
         if ($id !== null) {
-            // GET specifico: restituisce un singolo utente
             $stmt = $pdo->prepare("SELECT * FROM " . TABLE_USERS . " WHERE id = ?");
             $stmt->execute([$id]);
             $user = $stmt->fetch();
@@ -144,7 +126,6 @@ switch ($metodo) {
                 $statusCode = 404;
             }
         } else {
-            // GET generale: restituisce tutti gli utenti
             $stmt = $pdo->query("SELECT * FROM " . TABLE_USERS . " ORDER BY id");
             $users = $stmt->fetchAll();
             $response = $users;
@@ -153,14 +134,12 @@ switch ($metodo) {
         break;
         
     case 'POST':
-        // Validazione base
         if (empty($requestData)) {
             $response = ['error' => 'Dati non validi o mancanti'];
             $statusCode = 400;
             break;
         }
         
-        // Campi richiesti
         if (empty($requestData['nome']) || empty($requestData['email'])) {
             $response = ['error' => 'I campi nome ed email sono obbligatori'];
             $statusCode = 400;
@@ -214,7 +193,6 @@ switch ($metodo) {
             break;
         }
         
-        // Verifica che l'utente esista
         $stmt = $pdo->prepare("SELECT id FROM " . TABLE_USERS . " WHERE id = ?");
         $stmt->execute([$id]);
         if (!$stmt->fetch()) {
@@ -223,7 +201,6 @@ switch ($metodo) {
             break;
         }
         
-        // Campi richiesti per PUT (aggiornamento completo)
         if (empty($requestData['nome']) || empty($requestData['email'])) {
             $response = ['error' => 'I campi nome ed email sono obbligatori'];
             $statusCode = 400;
@@ -277,7 +254,6 @@ switch ($metodo) {
             break;
         }
         
-        // Verifica che l'utente esista
         $stmt = $pdo->prepare("SELECT * FROM " . TABLE_USERS . " WHERE id = ?");
         $stmt->execute([$id]);
         $existingUser = $stmt->fetch();
@@ -288,7 +264,6 @@ switch ($metodo) {
             break;
         }
         
-        // Aggiornamento parziale: solo i campi forniti
         $updateFields = [];
         $updateValues = [];
         
@@ -321,7 +296,6 @@ switch ($metodo) {
             $stmt = $pdo->prepare($sql);
             $stmt->execute($updateValues);
             
-            // Recupera l'utente aggiornato
             $stmt = $pdo->prepare("SELECT * FROM " . TABLE_USERS . " WHERE id = ?");
             $stmt->execute([$id]);
             $updatedUser = $stmt->fetch();
@@ -369,13 +343,10 @@ switch ($metodo) {
         $statusCode = 405;
 }
 
-// Imposta lo status code
 http_response_code($statusCode);
 
-// Imposta l'header Content-Type in base all'Accept del client
 header("Content-Type: " . $retct);
 
-// Restituisce la risposta nel formato richiesto
 if (isset($ret[1]) && $ret[1] == "json") {
     echo json_encode($response, JSON_PRETTY_PRINT);
 } elseif (isset($ret[1]) && $ret[1] == "xml") {
@@ -383,12 +354,10 @@ if (isset($ret[1]) && $ret[1] == "json") {
     array_to_xml($response, $xml);
     echo $xml->asXML();
 } else {
-    // Default JSON
     header("Content-Type: application/json");
     echo json_encode($response, JSON_PRETTY_PRINT);
 }
 
-// Funzione helper per convertire array in XML
 function array_to_xml($data, &$xml) {
     foreach ($data as $key => $value) {
         if (is_array($value)) {
