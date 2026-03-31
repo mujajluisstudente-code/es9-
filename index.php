@@ -50,7 +50,6 @@ function initDatabase() {
     
     $pdo->exec($sql);
     
-    // Inserisci dati di esempio se la tabella è vuota
     $stmt = $pdo->query("SELECT COUNT(*) as count FROM " . TABLE_USERS);
     $count = $stmt->fetch()['count'];
     
