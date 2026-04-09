@@ -175,7 +175,7 @@ switch ($metodo) {
             ];
             $statusCode = 201;
         } catch (PDOException $e) {
-            if ($e->errorInfo[1] == 1062) { // Duplicate entry
+            if ($e->errorInfo[1] == 1062) { 
                 $response = ['error' => 'Email già esistente'];
                 $statusCode = 409;
             } else {
