@@ -1,22 +1,18 @@
 <?php
-// Abilita CORS per test da browser
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,PATCH,DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Accept, X-Requested-With");
 
-// Gestione preflight OPTIONS
 if ($_SERVER["REQUEST_METHOD"] == "OPTIONS") {
     http_response_code(200);
     exit();
 }
 
-// Configurazione database (modifica con le tue credenziali)
 define('DB_HOST', '127.0.0.1');
 define('DB_NAME', 'restful_api');
 define('DB_USER', 'root');
-define('DB_PASS', 'TUA_PASSWORD'); // SOSTITUISCI CON LA TUA PASSWORD
+define('DB_PASS', 'TUA_PASSWORD'); 
 
-// Connessione al database
 function getDBConnection() {
     try {
         $pdo = new PDO(
@@ -37,25 +33,20 @@ function getDBConnection() {
     }
 }
 
-// Legge il metodo HTTP
 $metodo = $_SERVER["REQUEST_METHOD"];
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode('/', $uri);
 
-// Supporto per PATCH
 if ($metodo == 'POST' && isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
     $metodo = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'];
 }
 
-// Legge il tipo di contenuto
 $ct = $_SERVER["CONTENT_TYPE"] ?? 'application/json';
 $type = explode("/", $ct);
 
-// Legge il formato di risposta richiesto
 $retct = $_SERVER["HTTP_ACCEPT"] ?? 'application/json';
 $ret = explode("/", $retct);
 
-// Estrai l'ID dall'URI (es. /restful-api/index.php/123 o /restful-api/123)
 $id = null;
 for ($i = 0; $i < count($uri); $i++) {
     if (isset($uri[$i]) && is_numeric($uri[$i])) {
@@ -64,7 +55,6 @@ for ($i = 0; $i < count($uri); $i++) {
     }
 }
 
-// Legge il body della richiesta
 $body = file_get_contents('php://input');
 $requestData = [];
 
@@ -84,7 +74,6 @@ $pdo = getDBConnection();
 $response = [];
 $statusCode = 200;
 
-// Gestione delle richieste
 switch ($metodo) {
     case 'GET':
         if ($id !== null) {
